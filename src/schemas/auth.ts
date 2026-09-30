@@ -1,0 +1,47 @@
+import { z } from "zod";
+
+export const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^[6-9]\d{9}$/, "कृपया 10 अंकों का मान्य भारतीय मोबाइल नंबर दर्ज करें (6-9 से शुरू)");
+
+export const pinSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}$/, "पिन 4 अंकों की संख्या (उदा. 1234) होनी चाहिए");
+
+export const loginSchema = z.object({
+  phone: phoneSchema,
+  pin: pinSchema,
+});
+
+export const farmerRegisterSchema = z.object({
+  phone: phoneSchema,
+  pin: pinSchema,
+  name: z.string().trim().min(2, "कृपया अपना पूरा नाम दर्ज करें (कम से कम 2 अक्षर)"),
+  village: z.string().trim().min(2, "गाँव का नाम दर्ज करें"),
+  panchayat: z.string().trim().optional(),
+  tehsil: z.string().trim().min(2, "तहसील / ब्लॉक दर्ज करें"),
+  district: z.string().trim().min(2, "ज़िला चुनें"),
+  totalLandAcres: z.coerce.number().positive("एकड़ संख्या मान्य होनी चाहिए").optional().nullable(),
+});
+
+export const buyerRegisterSchema = z.object({
+  phone: phoneSchema,
+  pin: pinSchema,
+  name: z.string().trim().min(2, "संपर्क व्यक्ति का नाम दर्ज करें"),
+  businessName: z.string().trim().min(2, "फर्म / मिल / कोल्हू का नाम दर्ज करें"),
+  businessType: z.enum([
+    "SUGAR_MILL",
+    "JAGGERY_CRUSHER_KOLHU",
+    "KHANDSARI",
+    "TRADER_COMMISSION_AGENT",
+  ]),
+  address: z.string().trim().min(3, "व्यापारिक स्थल का पता दर्ज करें"),
+  district: z.string().trim().min(2, "ज़िला चुनें"),
+  gstin: z.string().trim().optional(),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+export type FarmerRegisterInput = z.infer<typeof farmerRegisterSchema>;
+export type BuyerRegisterInput = z.infer<typeof buyerRegisterSchema>;
