@@ -1,6 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { ListingStatus, BidStatus, Role, UserStatus } from "@prisma/client";
 
+// Safe User projection that excludes pinHash
+const safeFarmerSelect = {
+  id: true,
+  name: true,
+  phone: true,
+  role: true,
+  status: true,
+  farmerProfile: true,
+};
+
+const safeBuyerSelect = {
+  id: true,
+  name: true,
+  phone: true,
+  role: true,
+  status: true,
+  buyerProfile: true,
+};
+
 export async function getMarketplaceListings(filters?: {
   district?: string;
   variety?: string;
@@ -27,8 +46,8 @@ export async function getMarketplaceListings(filters?: {
     include: {
       farmer: {
         select: {
+          id: true,
           name: true,
-          phone: true,
           farmerProfile: true,
         },
       },
@@ -38,6 +57,7 @@ export async function getMarketplaceListings(filters?: {
         include: {
           buyer: {
             select: {
+              id: true,
               name: true,
               buyerProfile: true,
             },
@@ -57,17 +77,13 @@ export async function getListingById(id: string) {
     where: { id },
     include: {
       farmer: {
-        include: {
-          farmerProfile: true,
-        },
+        select: safeFarmerSelect,
       },
       bids: {
         orderBy: { bidPricePerQuintal: "desc" },
         include: {
           buyer: {
-            include: {
-              buyerProfile: true,
-            },
+            select: safeBuyerSelect,
           },
         },
       },
@@ -78,7 +94,12 @@ export async function getListingById(id: string) {
 export async function getFarmerDashboardData(phone = "9876543210") {
   const farmer = await prisma.user.findUnique({
     where: { phone },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      role: true,
+      status: true,
       farmerProfile: true,
       listings: {
         orderBy: { createdAt: "desc" },
@@ -87,9 +108,7 @@ export async function getFarmerDashboardData(phone = "9876543210") {
             orderBy: { bidPricePerQuintal: "desc" },
             include: {
               buyer: {
-                include: {
-                  buyerProfile: true,
-                },
+                select: safeBuyerSelect,
               },
             },
           },
@@ -104,7 +123,12 @@ export async function getFarmerDashboardData(phone = "9876543210") {
 export async function getBuyerDashboardData(phone = "9123456780") {
   const buyer = await prisma.user.findUnique({
     where: { phone },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      role: true,
+      status: true,
       buyerProfile: true,
       bids: {
         orderBy: { createdAt: "desc" },
@@ -112,9 +136,7 @@ export async function getBuyerDashboardData(phone = "9123456780") {
           listing: {
             include: {
               farmer: {
-                include: {
-                  farmerProfile: true,
-                },
+                select: safeFarmerSelect,
               },
             },
           },
@@ -148,13 +170,19 @@ export async function getAdminDashboardData() {
       where: { status: ListingStatus.PENDING_APPROVAL },
       include: {
         farmer: {
-          include: { farmerProfile: true },
+          select: safeFarmerSelect,
         },
       },
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
         farmerProfile: true,
         buyerProfile: true,
         _count: {
@@ -166,7 +194,9 @@ export async function getAdminDashboardData() {
     }),
     prisma.bid.findMany({
       include: {
-        buyer: { include: { buyerProfile: true } },
+        buyer: {
+          select: safeBuyerSelect,
+        },
         listing: true,
       },
       orderBy: { createdAt: "desc" },

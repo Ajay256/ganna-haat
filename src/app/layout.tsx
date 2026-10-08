@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+import { Providers } from "@/components/shared/Providers";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 
@@ -18,13 +19,15 @@ export default function RootLayout({
   return (
     <html lang="hi">
       <body className="min-h-screen flex flex-col bg-[#fcfdfa] text-cane-950 font-sans antialiased selection:bg-cane-200">
-        <LanguageProvider>
-          <Navbar />
-          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {children}
-          </main>
-          <Footer />
-        </LanguageProvider>
+        <Providers>
+          <LanguageProvider>
+            <Navbar />
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {children}
+            </main>
+            <Footer />
+          </LanguageProvider>
+        </Providers>
       </body>
     </html>
   );

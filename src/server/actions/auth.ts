@@ -2,13 +2,12 @@
 
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { signOut } from "@/lib/auth";
 import {
   farmerRegisterSchema,
   buyerRegisterSchema,
-  loginSchema,
   FarmerRegisterInput,
   BuyerRegisterInput,
-  LoginInput,
 } from "@/schemas/auth";
 import { Role } from "@prisma/client";
 
@@ -74,7 +73,7 @@ export async function registerFarmerAction(
       success: false,
       error: {
         code: "REGISTER_FAILED",
-        message: err instanceof Error ? err.message : "Registration failed",
+        message: "Registration failed. Please verify your details.",
         messageHi: "पंजीकरण में त्रुटि आई। कृपया फ़ील्ड्स जांचें और पुनः प्रयास करें।",
       },
     };
@@ -132,8 +131,28 @@ export async function registerBuyerAction(
       success: false,
       error: {
         code: "REGISTER_FAILED",
-        message: err instanceof Error ? err.message : "Registration failed",
+        message: "Registration failed. Please verify your details.",
         messageHi: "पंजीकरण में त्रुटि आई। कृपया फ़ील्ड्स जांचें और पुनः प्रयास करें।",
+      },
+    };
+  }
+}
+
+/**
+ * Server-side logout — calls Auth.js signOut.
+ * Client should redirect to /login after this resolves.
+ */
+export async function logoutAction(): Promise<ActionResult> {
+  try {
+    await signOut({ redirect: false });
+    return { success: true };
+  } catch {
+    return {
+      success: false,
+      error: {
+        code: "LOGOUT_FAILED",
+        message: "Logout failed",
+        messageHi: "लॉगआउट में समस्या आई।",
       },
     };
   }

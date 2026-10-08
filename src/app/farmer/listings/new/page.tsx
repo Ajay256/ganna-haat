@@ -51,12 +51,8 @@ export default function NewListingPage() {
     setSuccessMsg("");
 
     try {
-      // Demo farmer ID or fetch from session
-      const farmerRes = await fetch("/api/farmer/me");
-      const farmerData = await farmerRes.json();
-      const farmerId = farmerData?.id || "demo-farmer-id";
-
-      const res = await createListingAction(farmerId, {
+      // No need to fetch farmerId — server action reads it from session
+      const res = await createListingAction({
         variety,
         quantityQuintals: Number(quantityQuintals),
         harvestStatus,

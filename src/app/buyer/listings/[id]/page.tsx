@@ -92,12 +92,8 @@ export default function BuyerListingDetailsPage() {
     setSuccessMsg("");
 
     try {
-      // Demo buyer ID: Triveni Sugar Mill
-      const buyerRes = await fetch("/api/buyer/me");
-      const buyerData = await buyerRes.json();
-      const buyerId = buyerData?.id || "demo-buyer-id";
-
-      const res = await placeBidAction(buyerId, {
+      // No need to fetch buyerId — server action reads it from session
+      const res = await placeBidAction({
         listingId: listing.id,
         bidPricePerQuintal: Number(bidPrice),
         paymentTerms,

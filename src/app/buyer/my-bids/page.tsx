@@ -42,13 +42,13 @@ export default function MyBidsPage() {
     loadData();
   }, []);
 
-  const handleWithdraw = async (bidId: string, buyerId: string) => {
+  const handleWithdraw = async (bidId: string) => {
     if (!confirm(language === "hi" ? "क्या आप यह बोली वापस लेना चाहते हैं?" : "Withdraw this bid?")) {
       return;
     }
     setWithdrawingId(bidId);
     try {
-      const res = await withdrawBidAction(bidId, buyerId);
+      const res = await withdrawBidAction(bidId);
       if (res.success) {
         loadData();
       } else {
@@ -230,7 +230,7 @@ export default function MyBidsPage() {
                         size="sm"
                         variant="outline"
                         isLoading={isWithdrawing}
-                        onClick={() => handleWithdraw(bid.id, buyer.id)}
+                        onClick={() => handleWithdraw(bid.id)}
                         className="text-red-600 hover:bg-red-50 border-red-200"
                       >
                         <XCircle className="w-3.5 h-3.5" />

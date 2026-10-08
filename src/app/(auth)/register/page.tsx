@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -9,15 +9,27 @@ import { Button } from "@/components/ui/Button";
 import { Wheat, Store, UserPlus, CheckCircle2 } from "lucide-react";
 import { SUGARCANE_DISTRICTS } from "@/lib/constants/districts";
 import { registerFarmerAction, registerBuyerAction } from "@/server/actions/auth";
+import { useSession } from "next-auth/react";
 
 export default function RegisterPage() {
   const { t, language } = useTranslation();
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const [role, setRole] = useState<"FARMER" | "BUYER">("FARMER");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  // If already authenticated, redirect to role home
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const userRole = (session.user as unknown as { role?: string })?.role;
+      if (userRole === "FARMER") router.replace("/farmer/dashboard");
+      else if (userRole === "BUYER") router.replace("/buyer/marketplace");
+      else if (userRole === "ADMIN") router.replace("/admin/dashboard");
+    }
+  }, [status, session, router]);
 
   // Common Fields
   const [phone, setPhone] = useState("");

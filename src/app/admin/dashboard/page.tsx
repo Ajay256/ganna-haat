@@ -53,7 +53,7 @@ export default function AdminDashboardPage() {
     setActionInProgress(listingId);
     try {
       // Seeded admin ID or session
-      const res = await approveListingAction(listingId, "admin-user-id");
+      const res = await approveListingAction(listingId);
       if (res.success) {
         setNotification(
           language === "hi"

@@ -46,10 +46,10 @@ export default function FarmerDashboard() {
     loadData();
   }, []);
 
-  const handleAccept = async (bidId: string, farmerId: string) => {
+  const handleAccept = async (bidId: string) => {
     setActionInProgress(bidId);
     try {
-      const res = await acceptBidAction(bidId, farmerId);
+      const res = await acceptBidAction(bidId);
       if (res.success) {
         setNotification(
           language === "hi"
@@ -65,10 +65,10 @@ export default function FarmerDashboard() {
     }
   };
 
-  const handleReject = async (bidId: string, farmerId: string) => {
+  const handleReject = async (bidId: string) => {
     setActionInProgress(bidId);
     try {
-      const res = await rejectBidAction(bidId, farmerId);
+      const res = await rejectBidAction(bidId);
       if (res.success) {
         setNotification(
           language === "hi" ? "बोली अस्वीकार कर दी गई।" : "Bid rejected."
@@ -385,7 +385,7 @@ export default function FarmerDashboard() {
                                       size="sm"
                                       variant="primary"
                                       isLoading={isAccepting}
-                                      onClick={() => handleAccept(bid.id, farmer.id)}
+                                      onClick={() => handleAccept(bid.id)}
                                       className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                     >
                                       <CheckCircle2 className="w-4 h-4" />
@@ -396,7 +396,7 @@ export default function FarmerDashboard() {
                                       size="sm"
                                       variant="outline"
                                       disabled={isAccepting}
-                                      onClick={() => handleReject(bid.id, farmer.id)}
+                                      onClick={() => handleReject(bid.id)}
                                       className="text-red-600 hover:bg-red-50 border-red-200"
                                     >
                                       <XCircle className="w-4 h-4" />

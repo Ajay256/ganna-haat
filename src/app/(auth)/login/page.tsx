@@ -1,23 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Wheat, Store, ShieldAlert, LogIn, Sparkles, CheckCircle } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
   const { t, language } = useTranslation();
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [selectedRole, setSelectedRole] = useState<"FARMER" | "BUYER" | "ADMIN">("FARMER");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // If already authenticated, redirect to role home
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = (session.user as unknown as { role?: string })?.role;
+      if (role === "FARMER") router.replace("/farmer/dashboard");
+      else if (role === "BUYER") router.replace("/buyer/marketplace");
+      else if (role === "ADMIN") router.replace("/admin/dashboard");
+    }
+  }, [status, session, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +49,18 @@ export default function LoginPage() {
             : "Invalid mobile number or PIN. Please try again."
         );
       } else {
-        // Redirect by role
-        if (selectedRole === "FARMER") router.push("/farmer/dashboard");
-        else if (selectedRole === "BUYER") router.push("/buyer/marketplace");
-        else router.push("/admin/dashboard");
+        // Redirect based on ACTUAL role from server session — not the UI tab
+        // getSession() returns the fresh session after signIn resolves
+        const { getSession } = await import("next-auth/react");
+        const session = await getSession();
+        const role = (session?.user as unknown as { role?: string })?.role;
+
+        if (role === "FARMER") router.push("/farmer/dashboard");
+        else if (role === "BUYER") router.push("/buyer/marketplace");
+        else if (role === "ADMIN") router.push("/admin/dashboard");
+        else router.push("/");
+
+        router.refresh();
       }
     } catch {
       setErrorMsg("लॉगिन में तकनीकी समस्या आई।");
