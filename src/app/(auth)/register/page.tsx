@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Wheat, Store, UserPlus, CheckCircle2 } from "lucide-react";
+import { Wheat, Store, UserPlus, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { SUGARCANE_DISTRICTS } from "@/lib/constants/districts";
 import { registerFarmerAction, registerBuyerAction } from "@/server/actions/auth";
 import { useSession } from "next-auth/react";
+import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 
 export default function RegisterPage() {
   const { t, language } = useTranslation();
@@ -21,21 +22,21 @@ export default function RegisterPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // If already authenticated, redirect to role home
-  useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      const userRole = (session.user as unknown as { role?: string })?.role;
-      if (userRole === "FARMER") router.replace("/farmer/dashboard");
-      else if (userRole === "BUYER") router.replace("/buyer/marketplace");
-      else if (userRole === "ADMIN") router.replace("/admin/dashboard");
-    }
-  }, [status, session, router]);
-
   // Common Fields
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [name, setName] = useState("");
   const [district, setDistrict] = useState(SUGARCANE_DISTRICTS[0].nameHi);
+
+  // OTP Verification States
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState<any>(null);
+  const recaptchaVerifierRef = useRef<any>(null);
 
   // Farmer specific
   const [village, setVillage] = useState("");
@@ -50,11 +51,147 @@ export default function RegisterPage() {
   const [address, setAddress] = useState("");
   const [gstin, setGstin] = useState("");
 
+  // If already authenticated, redirect to role home
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const userRole = (session.user as unknown as { role?: string })?.role;
+      if (userRole === "FARMER") router.replace("/farmer/dashboard");
+      else if (userRole === "BUYER") router.replace("/buyer/marketplace");
+      else if (userRole === "ADMIN") router.replace("/admin/dashboard");
+    }
+  }, [status, session, router]);
+
+  // Clean up recaptcha on unmount
+  useEffect(() => {
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    };
+  }, []);
+
+  const handleSendOtp = async () => {
+    setOtpError("");
+    setErrorMsg("");
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setOtpError(
+        language === "hi"
+          ? "कृपया पहले 10 अंकों का मान्य भारतीय मोबाइल नंबर दर्ज करें"
+          : "Please enter a valid 10-digit Indian mobile number"
+      );
+      return;
+    }
+
+    const auth = getFirebaseAuth();
+    if (!auth || !isFirebaseConfigured()) {
+      setOtpError(
+        language === "hi"
+          ? "Firebase API Key सेट नहीं है। कृपया .env में अपनी Firebase कुंजियाँ जोड़ें।"
+          : "Firebase is not configured. Please add Firebase keys to .env."
+      );
+      return;
+    }
+
+    setIsSendingOtp(true);
+
+    try {
+      const { RecaptchaVerifier, signInWithPhoneNumber } = await import("firebase/auth");
+
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: "invisible",
+        });
+      }
+
+      const formattedPhone = `+91${phone}`;
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        recaptchaVerifierRef.current
+      );
+
+      setConfirmationResult(confirmation);
+      setOtpSent(true);
+    } catch (err: any) {
+      console.error("Firebase OTP Send Error:", err);
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch {
+          // ignore
+        }
+        recaptchaVerifierRef.current = null;
+      }
+
+      const msg = err?.message || "";
+      if (msg.includes("invalid-api-key") || msg.includes("api-key-not-valid")) {
+        setOtpError("Firebase API Key अमान्य है। कृपया .env में सही कुंजी जांचें।");
+      } else if (msg.includes("too-many-requests")) {
+        setOtpError("अत्यधिक प्रयासों के कारण अस्थायी रोक। कृपया कुछ मिनट बाद पुनः प्रयास करें।");
+      } else {
+        setOtpError(
+          language === "hi"
+            ? "OTP भेजने में समस्या आई। कृपया मोबाइल नंबर जांचें और पुनः प्रयास करें।"
+            : "Failed to send OTP. Please check your phone number and try again."
+        );
+      }
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setOtpError("");
+    if (!otp || otp.length < 6) {
+      setOtpError(
+        language === "hi"
+          ? "कृपया 6 अंकों का सही OTP दर्ज करें"
+          : "Please enter a 6-digit OTP"
+      );
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    try {
+      if (!confirmationResult) {
+        throw new Error("पहले OTP भेजें");
+      }
+      await confirmationResult.confirm(otp);
+      setOtpVerified(true);
+      setOtpError("");
+    } catch (err) {
+      console.error("OTP verification error:", err);
+      setOtpError(
+        language === "hi"
+          ? "गलत OTP दर्ज किया गया है। कृपया पुनः जांचें।"
+          : "Invalid OTP. Please check and try again."
+      );
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
+
+    // Enforce OTP verification if Firebase is configured
+    if (isFirebaseConfigured() && !otpVerified) {
+      setErrorMsg(
+        language === "hi"
+          ? "कृपया खाता बनाने से पहले अपने मोबाइल नंबर पर OTP प्राप्त कर सत्यापन पूरा करें।"
+          : "Please verify your mobile number with OTP before submitting."
+      );
+      setIsLoading(false);
+      return;
+    }
 
     try {
       if (role === "FARMER") {
@@ -102,6 +239,7 @@ export default function RegisterPage() {
 
   return (
     <div className="max-w-lg mx-auto py-8">
+      <div id="recaptcha-container"></div>
       <div className="bg-white border border-cane-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-cane-100 flex items-center justify-center text-cane-700 mx-auto">
@@ -162,16 +300,106 @@ export default function RegisterPage() {
               onChange={(e) => setName(e.target.value)}
             />
 
-            <Input
-              label={t.auth.phoneLabel}
-              placeholder={t.auth.phonePlaceholder}
-              type="tel"
-              maxLength={10}
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              prefixText="+91"
-            />
+            <div>
+              <Input
+                label={t.auth.phoneLabel}
+                placeholder={t.auth.phonePlaceholder}
+                type="tel"
+                maxLength={10}
+                required
+                disabled={otpVerified}
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value.replace(/\D/g, ""));
+                  setOtpSent(false);
+                  setOtp("");
+                  setOtpError("");
+                }}
+                prefixText="+91"
+              />
+
+              {/* OTP Action Area */}
+              <div className="mt-2">
+                {!otpVerified ? (
+                  <div>
+                    {!otpSent ? (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={isSendingOtp || phone.length !== 10}
+                        className="text-xs font-bold text-cane-800 hover:text-cane-950 bg-cane-100 hover:bg-cane-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {isSendingOtp ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="w-3.5 h-3.5 text-cane-700" />
+                        )}
+                        {language === "hi" ? "OTP प्राप्त करें" : "Send OTP"}
+                      </button>
+                    ) : (
+                      <div className="p-3 bg-cane-50 border border-cane-200 rounded-xl space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-cane-900">
+                            {language === "hi" ? "6-अंकीय OTP दर्ज करें:" : "Enter 6-digit OTP:"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleSendOtp}
+                            disabled={isSendingOtp}
+                            className="text-[11px] font-semibold text-cane-700 hover:text-cane-900 underline"
+                          >
+                            {language === "hi" ? "पुनः भेजें (Resend)" : "Resend OTP"}
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="••••••"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                            className="w-36 text-center tracking-widest font-mono text-base font-bold bg-white border border-cane-300 rounded-lg px-2 py-1.5 focus:border-cane-700 focus:outline-hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleVerifyOtp}
+                            disabled={isVerifyingOtp || otp.length !== 6}
+                            className="flex-1 bg-cane-700 hover:bg-cane-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          >
+                            {isVerifyingOtp && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            {language === "hi" ? "सत्यापित करें" : "Verify OTP"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      {language === "hi" ? "मोबाइल नंबर सत्यापित हो गया" : "Mobile number verified"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpVerified(false);
+                        setOtpSent(false);
+                        setOtp("");
+                      }}
+                      className="text-[11px] text-cane-600 hover:text-cane-900 underline font-normal"
+                    >
+                      {language === "hi" ? "बदलें" : "Change"}
+                    </button>
+                  </div>
+                )}
+
+                {otpError && (
+                  <p className="mt-1.5 text-xs text-red-600 font-medium">
+                    {otpError}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -183,7 +411,7 @@ export default function RegisterPage() {
               required
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-              helpText={language === "hi" ? "याद रखने योग्य 4 अंक" : "4-digit memorable PIN"}
+              helpText={language === "hi" ? "याद रखने योग्य 4 अंक (भविष्य में लॉगिन के लिए)" : "4-digit memorable PIN for future logins"}
             />
 
             <div className="space-y-1.5">

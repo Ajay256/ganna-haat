@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Wheat, Store, ShieldAlert, LogIn, Sparkles, CheckCircle } from "lucide-react";
+import { Wheat, Store, ShieldAlert, LogIn } from "lucide-react";
 import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
@@ -69,11 +69,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickDemo = (demoPhone: string, role: "FARMER" | "BUYER" | "ADMIN") => {
-    setPhone(demoPhone);
-    setPin("1234");
-    setSelectedRole(role);
-  };
 
   return (
     <div className="max-w-md mx-auto py-8">
@@ -161,7 +156,6 @@ export default function LoginPage() {
             required
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-            helpText={language === "hi" ? "डेमो पिन: 1234" : "Demo PIN: 1234"}
           />
 
           {errorMsg && (
@@ -179,40 +173,6 @@ export default function LoginPage() {
             {t.auth.loginBtn}
           </Button>
         </form>
-
-        {/* Quick 1-Click Demo Fillers */}
-        <div className="pt-2 border-t border-cane-100 space-y-2">
-          <span className="text-[11px] font-bold text-cane-600 uppercase tracking-wider flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-jaggery-600" />
-            {language === "hi" ? "त्वरित डेमो लॉगिन (1-क्लिक)" : "Quick Demo Login (1-Click)"}
-          </span>
-          <div className="grid grid-cols-1 gap-1.5 text-xs">
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("9876543210", "FARMER")}
-              className="text-left px-3 py-2 rounded-xl bg-cane-50 hover:bg-cane-100 border border-cane-200 text-cane-900 font-semibold flex items-center justify-between"
-            >
-              <span>🌾 किसान: <strong>चौधरी रमेश सिंह</strong> (9876543210)</span>
-              <span className="text-[10px] text-cane-600 font-mono">1234</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("9123456780", "BUYER")}
-              className="text-left px-3 py-2 rounded-xl bg-cane-50 hover:bg-cane-100 border border-cane-200 text-cane-900 font-semibold flex items-center justify-between"
-            >
-              <span>🏢 खरीदार: <strong>त्रिवेणी शुगर मिल</strong> (9123456780)</span>
-              <span className="text-[10px] text-cane-600 font-mono">1234</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("9999999999", "ADMIN")}
-              className="text-left px-3 py-2 rounded-xl bg-cane-50 hover:bg-cane-100 border border-cane-200 text-cane-900 font-semibold flex items-center justify-between"
-            >
-              <span>🛡️ एडमिन: <strong>व्यवस्थापक</strong> (9999999999)</span>
-              <span className="text-[10px] text-cane-600 font-mono">1234</span>
-            </button>
-          </div>
-        </div>
 
         {/* Link to Register */}
         <div className="text-center pt-2">
