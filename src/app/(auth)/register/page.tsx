@@ -102,11 +102,16 @@ export default function RegisterPage() {
     try {
       const { RecaptchaVerifier, signInWithPhoneNumber } = await import("firebase/auth");
 
-      if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
-        });
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch {}
+        recaptchaVerifierRef.current = null;
       }
+
+      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+      });
 
       const formattedPhone = `+91${phone}`;
       const confirmation = await signInWithPhoneNumber(
@@ -122,23 +127,32 @@ export default function RegisterPage() {
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
-        } catch {
-          // ignore
-        }
+        } catch {}
         recaptchaVerifierRef.current = null;
       }
 
+      const code = err?.code || "";
       const msg = err?.message || "";
-      if (msg.includes("invalid-api-key") || msg.includes("api-key-not-valid")) {
-        setOtpError("Firebase API Key अमान्य है। कृपया .env में सही कुंजी जांचें।");
-      } else if (msg.includes("too-many-requests")) {
-        setOtpError("अत्यधिक प्रयासों के कारण अस्थायी रोक। कृपया कुछ मिनट बाद पुनः प्रयास करें।");
-      } else {
+      const currentHost = typeof window !== "undefined" ? window.location.hostname : "";
+
+      if (code === "auth/unauthorized-domain") {
         setOtpError(
-          language === "hi"
-            ? "OTP भेजने में समस्या आई। कृपया मोबाइल नंबर जांचें और पुनः प्रयास करें।"
-            : "Failed to send OTP. Please check your phone number and try again."
+          `डोमेन अधिकृत नहीं है। कृपया Firebase Console ➔ Authentication ➔ Settings ➔ Authorized Domains में '${currentHost}' जोड़ें।`
         );
+      } else if (code === "auth/operation-not-allowed") {
+        setOtpError(
+          "Firebase Console में Phone Authentication चालू नहीं है। कृपया Firebase Console ➔ Authentication ➔ Sign-in method में Phone को Enable और Save करें।"
+        );
+      } else if (code === "auth/invalid-phone-number") {
+        setOtpError("अमान्य मोबाइल नंबर। कृपया सही 10 अंकों का नंबर जांचें।");
+      } else if (code === "auth/too-many-requests") {
+        setOtpError("अत्यधिक प्रयासों के कारण अस्थायी रोक। कृपया 10 मिनट बाद पुनः प्रयास करें।");
+      } else if (code === "auth/quota-exceeded") {
+        setOtpError("Firebase SMS दैनिक कोटा समाप्त हो गया है।");
+      } else if (msg.includes("invalid-api-key") || msg.includes("api-key-not-valid")) {
+        setOtpError("Firebase API Key अमान्य है। कृपया अपनी Firebase कुंजी जांचें।");
+      } else {
+        setOtpError(`OTP भेजने में विफल: ${code || msg || "कृपया पुनः प्रयास करें"}`);
       }
     } finally {
       setIsSendingOtp(false);
