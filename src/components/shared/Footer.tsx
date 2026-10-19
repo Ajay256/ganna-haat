@@ -38,6 +38,11 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-sm text-cane-300">
               <li>
+                <Link href="/about" className="hover:text-white transition-colors">
+                  {t.nav.about}
+                </Link>
+              </li>
+              <li>
                 <Link href="/buyer/marketplace" className="hover:text-white transition-colors">
                   {t.nav.marketplace}
                 </Link>

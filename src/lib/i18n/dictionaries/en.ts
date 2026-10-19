@@ -34,6 +34,7 @@ export const en = {
   // Navigation
   nav: {
     home: "Home",
+    about: "About Us",
     marketplace: "Cane Mandi",
     farmerDashboard: "Farmer Dashboard",
     buyerDashboard: "Buyer Dashboard",

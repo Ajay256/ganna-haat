@@ -18,6 +18,7 @@ import {
   PlusCircle,
   Gavel,
   Loader2,
+  Info,
 } from "lucide-react";
 
 export const Navbar: React.FC = () => {
@@ -72,6 +73,15 @@ export const Navbar: React.FC = () => {
             >
               <Store className="w-4 h-4 text-cane-600" />
               {t.nav.marketplace}
+            </Link>
+
+            {/* About Us — visible to all */}
+            <Link
+              href="/about"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-cane-900 hover:text-cane-700 hover:bg-cane-50 transition-colors"
+            >
+              <Info className="w-4 h-4 text-cane-600" />
+              {t.nav.about}
             </Link>
 
             {/* Farmer links */}
@@ -190,6 +200,15 @@ export const Navbar: React.FC = () => {
           >
             <Store className="w-5 h-5 text-cane-600" />
             {t.nav.marketplace}
+          </Link>
+
+          <Link
+            href="/about"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-base font-semibold text-cane-900 hover:bg-cane-50"
+          >
+            <Info className="w-5 h-5 text-cane-600" />
+            {t.nav.about}
           </Link>
 
           {(!isLoggedIn || role === "FARMER") && (

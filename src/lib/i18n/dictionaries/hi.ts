@@ -34,6 +34,7 @@ export const hi = {
   // नेविगेशन (Navigation)
   nav: {
     home: "मुख्य पृष्ठ",
+    about: "हमारे बारे में",
     marketplace: "गन्ना मंडी",
     farmerDashboard: "किसान डैशबोर्ड",
     buyerDashboard: "व्यापारी डैशबोर्ड",

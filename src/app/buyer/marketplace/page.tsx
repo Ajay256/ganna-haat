@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -56,9 +57,21 @@ export default function BuyerMarketplacePage() {
   return (
     <div className="space-y-8 pb-12">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-cane-900 via-cane-800 to-cane-950 text-white rounded-3xl p-6 sm:p-10 shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-cane-950 via-cane-900 to-cane-950 text-white rounded-3xl p-6 sm:p-10 shadow-lg relative overflow-hidden border border-cane-800/60">
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/images/sugar-cane-field-ripe-harvest_843560-3447.avif"
+            alt={language === "hi" ? "गन्ना खेत" : "Sugarcane field"}
+            fill
+            sizes="100vw"
+            className="object-cover object-right opacity-25 mix-blend-luminosity pointer-events-none"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-cane-950 via-cane-900/90 to-cane-950/70" />
+        </div>
+
         <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-cane-200 text-xs font-bold border border-white/20">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-cane-200 text-xs font-bold border border-white/20 backdrop-blur-xs">
             <Store className="w-4 h-4 text-cane-300" />
             <span>{t.marketplace.heading}</span>
           </div>
